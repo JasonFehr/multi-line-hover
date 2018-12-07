@@ -57,11 +57,28 @@ console.log('line: ', line(dummyCostValues));
 var path = svg.append("path")
   .attr("d", line(dummyCostValues))
   .attr("stroke", "darkgrey")
-  .attr("stroke-width", "2")
+  .attr("stroke-width", "3")
   .attr("fill", "none");
 
 var path2 = svg.append("path")
   .attr("d", line(dummyUtilValues))
   .attr("stroke", "blue")
-  .attr("stroke-width", "2")
+  .attr("stroke-width", "3")
   .attr("fill", "none");
+
+  var totalLength = path.node().getTotalLength();
+
+  path
+    .attr("stroke-dasharray", totalLength + " " + totalLength)
+    .attr("stroke-dashoffset", totalLength)
+    .transition()
+      .duration(6000)
+      .ease(d3.easeLinear)
+      .attr("stroke-dashoffset", 0)
+  path2
+    .attr("stroke-dasharray", totalLength + " " + totalLength)
+    .attr("stroke-dashoffset", totalLength)
+    .transition()
+      .duration(6000)
+      .ease(d3.easeLinear)
+      .attr("stroke-dashoffset", 0)
