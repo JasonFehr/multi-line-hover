@@ -7,6 +7,7 @@ console.log('width, height: ', width, height);
 var yearStrings = ['2012', '2013', '2014', '2015', '2016'];
 var dummyCostValues = [0,2.5,4,6.5,8];
 var dummyUtilValues = [0,-1,-2.2,-3.2,-4.1];
+var dummyCostArrays = ['2012', 2.5, '2013', 4, '2014', 3];
 
 
 var svg = testContainer.append("svg")
@@ -46,3 +47,21 @@ svg.append('g')
     .attr('class', 'leftAxis leftAxis0 graph0')
     .attr('transform', 'translate(' + (width * 0.1) + ',0)')
     .call(d3.axisLeft(y));
+
+var line = d3.line()
+  .x(function(e, i) { return x(yearStrings[i]) })
+  .y(function(e) { return y(e) });
+
+console.log('line: ', line(dummyCostValues));
+
+var path = svg.append("path")
+  .attr("d", line(dummyCostValues))
+  .attr("stroke", "darkgrey")
+  .attr("stroke-width", "2")
+  .attr("fill", "none");
+
+var path2 = svg.append("path")
+  .attr("d", line(dummyUtilValues))
+  .attr("stroke", "blue")
+  .attr("stroke-width", "2")
+  .attr("fill", "none");
