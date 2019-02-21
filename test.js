@@ -50,16 +50,31 @@ for (var i = 0;i <= config.numberOfLines; i += 1) {
   var lineDrift = ((Math.random() * 2) - 1) * config.lineDrift;
   for (var j = 1;j <= config.lineNumberOfPoints; j += 1) {
     var newX = config.maxXValue / config.lineNumberOfPoints * j;
-    var newY = linePathArray[i][j-1][1] + (((Math.random() * 2) - 1));
+    var newY = linePathArray[i][j-1][1] + (((Math.random() * 2) - 1) * (config.maxYValue / config.numberOfLines));
+    if (newY > config.maxYValue) {
+      newY = linePathArray[i][j-1][1] - (Math.random() * (config.maxYValue / config.numberOfLines));
+    }
+    if (newY < config.minYValue) {
+      newY = linePathArray[i][j-1][1] + (Math.random() * (config.maxYValue / config.numberOfLines));
+    }
     linePathArray[i].push([newX, newY]);
   }
 }
 console.log('linePathArray: ', linePathArray);
 
 var line = d3.line()
-  .x(function(e) { return x(e) })
-  .y(function(e) { return y(e) });
+  .x(function(e) { return x(e[0]) })
+  .y(function(e) { return y(e[1]) });
 
+
+for (var i = 0;i <= config.numberOfLines; i += 1) {
+  g.append("path")
+    .attr('class', 'all-lines line' + i)
+    .attr("d", line(linePathArray[i]))
+    .attr("stroke", "darkgrey")
+    .attr("stroke-width", config.lineWidth)
+    .attr("fill", "none");
+}
 
 
 
