@@ -7,15 +7,17 @@ var config = {
     right: 100,
     bottom: 40,
   },
-  lineNumberOfPoints: 3,
-  lineDrift: 0.5,
+  lineNumberOfPoints: 20,
+  lineDrift: 0.8,
   maxXValue: 100,
   maxYValue: 50,
   minYValue: -50,
-  numberOfLines: 1,
+  numberOfLines: 8,
   lineWidth: 2,
-  lineWidthHovered: 4,
-  maximumDistanceToHover: 5,
+  lineWidthHovered: 6,
+  maximumDistanceToHover: 20,
+  labelFontSize: 12,
+  spaceBetweenLineAndLabel: 4,
 }
 
 var svg = d3.select('#hover-line-svg');
@@ -51,7 +53,7 @@ for (var i = 0;i < config.numberOfLines; i += 1) {
   var lineDrift = ((Math.random() * 2) - 1) * config.lineDrift;
   for (var j = 1;j < config.lineNumberOfPoints; j += 1) {
     var newX = config.maxXValue / (config.lineNumberOfPoints - 1) * j;
-    var newY = linePathArray[i][j-1][1] + (((Math.random() * 2) - 1) * (config.maxYValue / config.numberOfLines));
+    var newY = linePathArray[i][j-1][1] + (((Math.random() * 2) - 1 + lineDrift) * (config.maxYValue / config.numberOfLines));
     if (newY > config.maxYValue) {
       newY = linePathArray[i][j-1][1] - (Math.random() * (config.maxYValue / config.numberOfLines));
     }
@@ -92,119 +94,43 @@ function highlightClosestLine() {
   // console.log('distanceFromEachLineArray: ', distanceFromEachLineArray);
   d3.selectAll('.all-lines')
       .attr('stroke-width', config.lineWidth);
+  d3.select('#line-label').remove();
   if (d3.min(distanceFromEachLineArray) < config.maximumDistanceToHover) {
+    // console.log('distance: ', d3.min(distanceFromEachLineArray));
     var closestLine = distanceFromEachLineArray.indexOf(d3.min(distanceFromEachLineArray));
     d3.selectAll('.line' + closestLine)
         .attr('stroke-width', config.lineWidthHovered);
+    g.append('text')
+      .attr('id', 'line-label')
+      .attr("text-anchor", "start")
+      .attr('font-size', config.labelFontSize + 'px')
+      .attr('dy', '.35em')
+      .attr('x', x(config.maxXValue) + config.spaceBetweenLineAndLabel)
+      .attr('y',  y(linePathArray[closestLine][config.lineNumberOfPoints - 1][1]))
+      .attr('fill', 'black')
+      .attr('opacity', 1)
+      .text('Line ' + closestLine);
   }
+
 }
 
 
 function distanceBetweenPointAndSegment(pointLocation, segmentStartLocation, segmentEndLocation) {
-  console.log('locations: ', pointLocation, segmentStartLocation, segmentEndLocation);
+  var distance;
+  // console.log('locations: ', pointLocation, segmentStartLocation, segmentEndLocation);
+  var lengthOfLineSegment = Math.sqrt(Math.pow((segmentEndLocation[0] - segmentStartLocation[0]), 2) + Math.pow((segmentEndLocation[1] - segmentStartLocation[1]), 2));
   var distanceBetweenPointAndSegmentStart = Math.sqrt(Math.pow((pointLocation[0] - segmentStartLocation[0]), 2) + Math.pow((pointLocation[1] - segmentStartLocation[1]), 2));
   var distanceBetweenPointAndSegmentEnd = Math.sqrt(Math.pow((pointLocation[0] - segmentEndLocation[0]), 2) + Math.pow((pointLocation[1] - segmentEndLocation[1]), 2));
   var a = segmentStartLocation[1] - segmentEndLocation[1];
   var b = segmentEndLocation[0] - segmentStartLocation[0];
   var c = (segmentEndLocation[1] * segmentStartLocation[0]) - (segmentStartLocation[1] * segmentEndLocation[0]);
-  var distancePerpendicularToExtendedLine = ((a * pointLocation[0]) + (b * pointLocation[1]) + c)/(Math.sqrt((Math.pow(a,2) + (Math.pow(b,2)))));
-  console.log('distances: ', distanceBetweenPointAndSegmentStart, distanceBetweenPointAndSegmentEnd, distancePerpendicularToExtendedLine);
-  // var distance = Math.sqrt(Math.pow((firstPoint[0] - secondPoint[0]), 2) + Math.pow((firstPoint[1] - secondPoint[1]), 2));
-  // return distance;
+  var distancePerpendicularToExtendedLine = Math.abs(((a * pointLocation[0]) + (b * pointLocation[1]) + c)/(Math.sqrt((Math.pow(a,2) + (Math.pow(b,2))))));
+  var distanceBetweenClosestPointOfExtendedLineAndOtherEndOfLine = Math.sqrt(Math.pow(d3.max([distanceBetweenPointAndSegmentStart, distanceBetweenPointAndSegmentEnd]), 2) - Math.pow(distancePerpendicularToExtendedLine, 2));
+  if (distanceBetweenClosestPointOfExtendedLineAndOtherEndOfLine > lengthOfLineSegment) {
+    distance = d3.min([distanceBetweenPointAndSegmentStart, distanceBetweenPointAndSegmentEnd]);
+  } else {
+    distance = distancePerpendicularToExtendedLine;
+  }
+  // console.log('distance: ', distance);
+  return distance;
 }
-
-
-//
-// var testContainer = d3.select("#test-container");
-// var width = window.innerWidth;
-// var height = window.innerHeight * 0.8;
-//
-// console.log('width, height: ', width, height);
-// var yearStringArray = ['2013', '2014', '2015', '2016', '2017'];
-// var dummyCostValues = [0,2.5,4,6.5,8];
-// var dummyUtilValues = [0,-1,-2.2,-3.2,-4.1];
-// var dummyCostArrays = ['2012', 2.5, '2013', 4, '2014', 3];
-//
-//
-//
-// var svg = testContainer.append("svg")
-//   .attr("width", width)
-//   .attr("height", height)
-//   .attr("id", "testLineSVG");
-//   // .style("background-color", "blue");
-//
-// // var innerContainer = svg.append("g")
-// //   .attr("width", 100)
-// //   .attr("height", 100)
-// //   .attr("transform", "translate(0,0)");
-//
-// var xJasonLineGraph = d3.scalePoint()
-//   .range([width * 0.1, width * 0.9])
-//   .domain(yearStringArray)
-//   .padding(0.1);
-//
-//
-// var yJasonLineGraph = d3.scaleLinear()
-//   .range([height * 0.9, height * 0.1])
-//   .domain([-4.1, 8]);
-//
-//
-// svg.append("g")
-//   .attr('transform', 'translate(0,' + (yJasonLineGraph(0)) + ')')
-//   .attr('class', 'axis')
-//   .call(d3.axisBottom(xJasonLineGraph));
-//   // d3.select(".axis")
-//   //     .call(d3.axisBottom(x));
-//
-// // innerContainer.append('g')
-// //   .attr('transform', 'translate(0,' + height + ')')
-// //   .attr('class', 'axis')
-// //   .call(d3.axisLeft(y));
-//
-// svg.append('g')
-//     .attr('class', 'leftAxis leftAxis0 graph0')
-//     .attr('transform', 'translate(' + (width * 0.1) + ',0)')
-//     .call(d3.axisLeft(yJasonLineGraph));
-//
-// var line = d3.line()
-//   .x(function(e, i) { return x(yearStrings[i]) })
-//   .y(function(e) { return y(e) });
-//
-// console.log('line: ', line(dummyCostValues));
-//
-// var path = svg.append("path")
-//   .attr("d", line(dummyCostValues))
-//   .attr("stroke", "darkgrey")
-//   .attr("stroke-width", "3")
-//   .attr("fill", "none");
-//
-// var path2 = svg.append("path")
-//   .attr("d", line(dummyUtilValues))
-//   .attr("stroke", "blue")
-//   .attr("stroke-width", "3")
-//   .attr("fill", "none");
-//
-//   var totalLength = path.node().getTotalLength();
-//
-//   path.attr("stroke-dasharray", totalLength + " " + totalLength)
-//   .attr("stroke-dashoffset", totalLength)
-//
-//
-// function testFunction() {
-//   console.log('test');
-//
-//     path
-//       .attr("stroke-dasharray", totalLength + " " + totalLength)
-//       .attr("stroke-dashoffset", totalLength)
-//       .transition()
-//         .duration(6000)
-//         .ease(d3.easeLinear)
-//         .attr("stroke-dashoffset", 0)
-//     path2
-//       .attr("stroke-dasharray", totalLength + " " + totalLength)
-//       .attr("stroke-dashoffset", totalLength)
-//       .transition()
-//         .duration(6000)
-//         .ease(d3.easeLinear)
-//         .attr("stroke-dashoffset", 0)
-// }
