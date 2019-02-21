@@ -7,12 +7,12 @@ var config = {
     right: 100,
     bottom: 40,
   },
-  lineNumberOfPoints: 20,
+  lineNumberOfPoints: 3,
   lineDrift: 0.5,
   maxXValue: 100,
   maxYValue: 50,
   minYValue: -50,
-  numberOfLines: 3,
+  numberOfLines: 1,
   lineWidth: 2,
   lineWidthHovered: 4,
   maximumDistanceToHover: 5,
@@ -49,8 +49,8 @@ var linePathArray = [];
 for (var i = 0;i < config.numberOfLines; i += 1) {
   linePathArray[i] = [[0,0]];
   var lineDrift = ((Math.random() * 2) - 1) * config.lineDrift;
-  for (var j = 1;j <= config.lineNumberOfPoints; j += 1) {
-    var newX = config.maxXValue / config.lineNumberOfPoints * j;
+  for (var j = 1;j < config.lineNumberOfPoints; j += 1) {
+    var newX = config.maxXValue / (config.lineNumberOfPoints - 1) * j;
     var newY = linePathArray[i][j-1][1] + (((Math.random() * 2) - 1) * (config.maxYValue / config.numberOfLines));
     if (newY > config.maxYValue) {
       newY = linePathArray[i][j-1][1] - (Math.random() * (config.maxYValue / config.numberOfLines));
@@ -82,14 +82,12 @@ function highlightClosestLine() {
   // console.log('hover: ', mouse);
   var distanceFromEachLineArray = [];
   for (var i = 0;i < config.numberOfLines; i += 1) {
-    var distanceFromEachMidpointArray = [];
-    for (var j = 1;j <= config.lineNumberOfPoints; j += 1) {
-      var midpointX = (x(linePathArray[i][j][0]) + x(linePathArray[i][j-1][0])) * 0.5;
-      var midpointY = (y(linePathArray[i][j][1]) + y(linePathArray[i][j-1][1])) * 0.5;
-      distanceFromEachMidpointArray.push(distanceBetweenPoints([(mouse[0] - config.gMargin.left), (mouse[1] - config.gMargin.top)], [midpointX, midpointY]));
+    var distanceFromEachSegmentArray = [];
+    for (var j = 1;j < config.lineNumberOfPoints; j += 1) {
+      distanceFromEachSegmentArray.push(distanceBetweenPointAndSegment([(mouse[0] - config.gMargin.left), (mouse[1] - config.gMargin.top)], [x(linePathArray[i][j-1][0]), y(linePathArray[i][j-1][1])], [x(linePathArray[i][j][0]), y(linePathArray[i][j][1])]));
     }
     // console.log('distanceFromEachMidpointArray: ', distanceFromEachMidpointArray);
-    distanceFromEachLineArray.push(d3.min(distanceFromEachMidpointArray));
+    distanceFromEachLineArray.push(d3.min(distanceFromEachSegmentArray));
   }
   // console.log('distanceFromEachLineArray: ', distanceFromEachLineArray);
   d3.selectAll('.all-lines')
@@ -102,10 +100,13 @@ function highlightClosestLine() {
 }
 
 
-function distanceBetweenPoints(firstPoint, secondPoint) {
-  // console.log('secondPoint: ', firstPoint, secondPoint);
-  var distance = Math.sqrt(Math.pow((firstPoint[0] - secondPoint[0]), 2) + Math.pow((firstPoint[1] - secondPoint[1]), 2));
-  return distance;
+function distanceBetweenPointAndSegment(pointLocation, segmentStartLocation, segmentEndLocation) {
+  console.log('locations: ', pointLocation, segmentStartLocation, segmentEndLocation);
+  var distanceBetweenPointAndSegmentStart = Math.sqrt(Math.pow((pointLocation[0] - segmentStartLocation[0]), 2) + Math.pow((pointLocation[1] - segmentStartLocation[1]), 2));
+  var distanceBetweenPointAndSegmentEnd = Math.sqrt(Math.pow((pointLocation[0] - segmentEndLocation[0]), 2) + Math.pow((pointLocation[1] - segmentEndLocation[1]), 2));
+  console.log('distances: ', distanceBetweenPointAndSegmentStart, distanceBetweenPointAndSegmentEnd);
+  // var distance = Math.sqrt(Math.pow((firstPoint[0] - secondPoint[0]), 2) + Math.pow((firstPoint[1] - secondPoint[1]), 2));
+  // return distance;
 }
 
 
