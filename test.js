@@ -1,3 +1,4 @@
+// Set configuration for lines and hover behavior
 var config = {
   svgHeight: 600,
   svgWidth: 900,
@@ -8,37 +9,52 @@ var config = {
     bottom: 40,
   },
   lineNumberOfPoints: 20,
-  lineDrift: 0.8,
+  lineDrift: 1.4,// This is used below to determine how much the random lines tend to spread out
   maxXValue: 100,
-  maxYValue: 50,
-  minYValue: -50,
   numberOfLines: 8,
   lineWidth: 2,
   lineWidthHovered: 6,
-  maximumDistanceToHover: 20,
+  maximumDistanceToHover: 20,// If the mouse is more than this many pixels from all lines, no line is highlighted.
   labelFontSize: 12,
   spaceBetweenLineAndLabel: 4,
 }
 
+// Set up the svg
 var svg = d3.select('#hover-line-svg');
 svg.style('height', config.svgHeight)
     .style('width', config.svgWidth)
     .on('mousemove', highlightClosestLine);
 
+// Set up the inner 'g' element
 var gWidth = config.svgWidth - config.gMargin.left - config.gMargin.right;
 var gHeight = config.svgHeight - config.gMargin.top - config.gMargin.bottom;
-
 var g = svg.append('g')
             .attr('transform', 'translate(' + config.gMargin.left + ',' + config.gMargin.top + ')');
 
+// Create an array of line data
+var linePathArray = [];
+var globalYValueArray = [];// Record every Y value to determine the y scale maximum and minimum
+for (var i = 0;i < config.numberOfLines; i += 1) {// Create an array of points for each line
+  linePathArray[i] = [[0,0]];// Each line will start at 0,0
+  var lineDrift = ((Math.random() * 2) - 1) * config.lineDrift / config.lineNumberOfPoints;// Each line has its own "drift" factor which allows them to spread out
+  for (var j = 1;j < config.lineNumberOfPoints; j += 1) {
+    var newX = config.maxXValue / (config.lineNumberOfPoints - 1) * j;
+    var newY = linePathArray[i][j-1][1] + ((Math.random() * 2) - 1 + lineDrift);
+    linePathArray[i].push([newX, newY]);
+    globalYValueArray.push(newY);
+  }
+}
+
+// The x and y scales
 var x =  d3.scaleLinear()
   .range([0, gWidth])
   .domain([0, config.maxXValue]);
 
 var y =  d3.scaleLinear()
   .range([0, gHeight])
-  .domain([config.maxYValue, config.minYValue]);
+  .domain([d3.max(globalYValueArray), d3.min(globalYValueArray)]);// Use the maximum and minimum Y for the Y scale
 
+// Build axes
 g.append("g")
   .attr('transform', 'translate(0,' + (y(0)) + ')')
   .attr('class', 'axis')
@@ -47,46 +63,35 @@ g.append("g")
   .attr('class', 'axis')
   .call(d3.axisLeft(y));
 
-var linePathArray = [];
-for (var i = 0;i < config.numberOfLines; i += 1) {
-  linePathArray[i] = [[0,0]];
-  var lineDrift = ((Math.random() * 2) - 1) * config.lineDrift;
-  for (var j = 1;j < config.lineNumberOfPoints; j += 1) {
-    var newX = config.maxXValue / (config.lineNumberOfPoints - 1) * j;
-    var newY = linePathArray[i][j-1][1] + (((Math.random() * 2) - 1 + lineDrift) * (config.maxYValue / config.numberOfLines));
-    if (newY > config.maxYValue) {
-      newY = linePathArray[i][j-1][1] - (Math.random() * (config.maxYValue / config.numberOfLines));
-    }
-    if (newY < config.minYValue) {
-      newY = linePathArray[i][j-1][1] + (Math.random() * (config.maxYValue / config.numberOfLines));
-    }
-    linePathArray[i].push([newX, newY]);
-  }
-}
-// console.log('linePathArray: ', linePathArray);
-
+// The line generator accepts an array of points and returns a string to allow d3 to build a path
 var line = d3.line()
   .x(function(e) { return x(e[0]) })
   .y(function(e) { return y(e[1]) });
 
-
+// Draw a line for each set of line data
 for (var i = 0;i < config.numberOfLines; i += 1) {
   g.append("path")
-    .attr('class', 'all-lines line' + i)
+    .attr('class', 'all-lines line' + i) // The all-lines class is used to unselect them all, the specific line0 line1 etc. class is used for selecting
     .attr("d", line(linePathArray[i]))
     .attr("stroke", "darkgrey")
     .attr("stroke-width", config.lineWidth)
     .attr("fill", "none");
 }
 
+// This function determines which line is closest
 function highlightClosestLine() {
-  var mouse = d3.mouse(this);
-  // console.log('hover: ', mouse);
-  var distanceFromEachLineArray = [];
+  var mouse = d3.mouse(this);// The mouse x and y coordinates on the svg
+  var distanceFromEachLineArray = [];// This will be an array of distances between the mouse and each line
   for (var i = 0;i < config.numberOfLines; i += 1) {
-    var distanceFromEachSegmentArray = [];
+    var distanceFromEachSegmentArray = [];// This will be the distance between the mouse and each line segment. The minimum of these will be the distance between the mouse and this line.
     for (var j = 1;j < config.lineNumberOfPoints; j += 1) {
-      distanceFromEachSegmentArray.push(distanceBetweenPointAndSegment([(mouse[0] - config.gMargin.left), (mouse[1] - config.gMargin.top)], [x(linePathArray[i][j-1][0]), y(linePathArray[i][j-1][1])], [x(linePathArray[i][j][0]), y(linePathArray[i][j][1])]));
+      var mouseXPointOnGraph = (mouse[0] - config.gMargin.left);// remember the mouse location that matters is its location on the graph, not on the svg
+      var mouseYPointOnGraph = (mouse[1] - config.gMargin.top);
+      var xCoordinateOfBeginningOfSegment = x(linePathArray[i][j-1][0]);
+      var yCoordinateOfBeginningOfSegment = y(linePathArray[i][j-1][1]);
+      var xCoordinateOfEndOfSegment = x(linePathArray[i][j][0]);
+      var yCoordinateOfEndOfSegment = y(linePathArray[i][j][1]);
+      distanceFromEachSegmentArray.push(distanceBetweenPointAndSegment([mouseXPointOnGraph, mouseYPointOnGraph], [xCoordinateOfBeginningOfSegment, yCoordinateOfBeginningOfSegment], [xCoordinateOfEndOfSegment, yCoordinateOfEndOfSegment]));
     }
     // console.log('distanceFromEachMidpointArray: ', distanceFromEachMidpointArray);
     distanceFromEachLineArray.push(d3.min(distanceFromEachSegmentArray));
