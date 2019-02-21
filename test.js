@@ -4,7 +4,7 @@ var config = {
   gMargin: {
     top: 40,
     left: 40,
-    right: 40,
+    right: 100,
     bottom: 40,
   },
   lineNumberOfPoints: 20,
@@ -12,7 +12,7 @@ var config = {
   maxXValue: 100,
   maxYValue: 50,
   minYValue: -50,
-  numberOfLines: 4,
+  numberOfLines: 3,
   lineWidth: 2,
   lineWidthHovered: 4,
   maximumDistanceToHover: 5,
@@ -20,7 +20,8 @@ var config = {
 
 var svg = d3.select('#hover-line-svg');
 svg.style('height', config.svgHeight)
-    .style('width', config.svgWidth);
+    .style('width', config.svgWidth)
+    .on('mousemove', highlightClosestLine);
 
 var gWidth = config.svgWidth - config.gMargin.left - config.gMargin.right;
 var gHeight = config.svgHeight - config.gMargin.top - config.gMargin.bottom;
@@ -34,7 +35,7 @@ var x =  d3.scaleLinear()
 
 var y =  d3.scaleLinear()
   .range([0, gHeight])
-  .domain([config.minYValue, config.maxYValue]);
+  .domain([config.maxYValue, config.minYValue]);
 
 g.append("g")
   .attr('transform', 'translate(0,' + (y(0)) + ')')
@@ -45,7 +46,7 @@ g.append("g")
   .call(d3.axisLeft(y));
 
 var linePathArray = [];
-for (var i = 0;i <= config.numberOfLines; i += 1) {
+for (var i = 0;i < config.numberOfLines; i += 1) {
   linePathArray[i] = [[0,0]];
   var lineDrift = ((Math.random() * 2) - 1) * config.lineDrift;
   for (var j = 1;j <= config.lineNumberOfPoints; j += 1) {
@@ -60,14 +61,14 @@ for (var i = 0;i <= config.numberOfLines; i += 1) {
     linePathArray[i].push([newX, newY]);
   }
 }
-console.log('linePathArray: ', linePathArray);
+// console.log('linePathArray: ', linePathArray);
 
 var line = d3.line()
   .x(function(e) { return x(e[0]) })
   .y(function(e) { return y(e[1]) });
 
 
-for (var i = 0;i <= config.numberOfLines; i += 1) {
+for (var i = 0;i < config.numberOfLines; i += 1) {
   g.append("path")
     .attr('class', 'all-lines line' + i)
     .attr("d", line(linePathArray[i]))
@@ -76,8 +77,36 @@ for (var i = 0;i <= config.numberOfLines; i += 1) {
     .attr("fill", "none");
 }
 
+function highlightClosestLine() {
+  var mouse = d3.mouse(this);
+  // console.log('hover: ', mouse);
+  var distanceFromEachLineArray = [];
+  for (var i = 0;i < config.numberOfLines; i += 1) {
+    var distanceFromEachMidpointArray = [];
+    for (var j = 1;j <= config.lineNumberOfPoints; j += 1) {
+      var midpointX = (x(linePathArray[i][j][0]) + x(linePathArray[i][j-1][0])) * 0.5;
+      var midpointY = (y(linePathArray[i][j][1]) + y(linePathArray[i][j-1][1])) * 0.5;
+      distanceFromEachMidpointArray.push(distanceBetweenPoints([(mouse[0] - config.gMargin.left), (mouse[1] - config.gMargin.top)], [midpointX, midpointY]));
+    }
+    // console.log('distanceFromEachMidpointArray: ', distanceFromEachMidpointArray);
+    distanceFromEachLineArray.push(d3.min(distanceFromEachMidpointArray));
+  }
+  // console.log('distanceFromEachLineArray: ', distanceFromEachLineArray);
+  d3.selectAll('.all-lines')
+      .attr('stroke-width', config.lineWidth);
+  if (d3.min(distanceFromEachLineArray) < config.maximumDistanceToHover) {
+    var closestLine = distanceFromEachLineArray.indexOf(d3.min(distanceFromEachLineArray));
+    d3.selectAll('.line' + closestLine)
+        .attr('stroke-width', config.lineWidthHovered);
+  }
+}
 
 
+function distanceBetweenPoints(firstPoint, secondPoint) {
+  // console.log('secondPoint: ', firstPoint, secondPoint);
+  var distance = Math.sqrt(Math.pow((firstPoint[0] - secondPoint[0]), 2) + Math.pow((firstPoint[1] - secondPoint[1]), 2));
+  return distance;
+}
 
 
 //
