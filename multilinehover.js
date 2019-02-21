@@ -69,7 +69,7 @@ var line = d3.line()
   .y(function(e) { return y(e[1]) });
 
 // Draw a line for each set of line data
-for (var i = 0;i < config.numberOfLines; i += 1) {
+for (var i = 0; i < config.numberOfLines; i += 1) {
   g.append("path")
     .attr('class', 'all-lines line' + i) // The all-lines class is used to unselect them all, the specific line0 line1 etc. class is used for selecting
     .attr("d", line(linePathArray[i]))
@@ -83,7 +83,7 @@ function highlightClosestLine() {
   var mouse = d3.mouse(this);// The mouse x and y coordinates on the svg
   var distanceFromEachLineArray = [];// This will be an array of distances between the mouse and each line
   for (var i = 0;i < config.numberOfLines; i += 1) {
-    var distanceFromEachSegmentArray = [];// This will be the distance between the mouse and each line segment. The minimum of these will be the distance between the mouse and this line.
+    var distanceFromEachSegmentArray = [];// This will be the distance between the mouse and each line segment for a given line. The minimum of these will be the distance between the mouse and this line.
     for (var j = 1;j < config.lineNumberOfPoints; j += 1) {
       var mouseXPointOnGraph = (mouse[0] - config.gMargin.left);// remember the mouse location that matters is its location on the graph, not on the svg
       var mouseYPointOnGraph = (mouse[1] - config.gMargin.top);
@@ -93,18 +93,16 @@ function highlightClosestLine() {
       var yCoordinateOfEndOfSegment = y(linePathArray[i][j][1]);
       distanceFromEachSegmentArray.push(distanceBetweenPointAndSegment([mouseXPointOnGraph, mouseYPointOnGraph], [xCoordinateOfBeginningOfSegment, yCoordinateOfBeginningOfSegment], [xCoordinateOfEndOfSegment, yCoordinateOfEndOfSegment]));
     }
-    // console.log('distanceFromEachMidpointArray: ', distanceFromEachMidpointArray);
-    distanceFromEachLineArray.push(d3.min(distanceFromEachSegmentArray));
+    distanceFromEachLineArray.push(d3.min(distanceFromEachSegmentArray));// Whichever segment distance is shortest is this line's distance from the mouse pointer
   }
-  // console.log('distanceFromEachLineArray: ', distanceFromEachLineArray);
-  d3.selectAll('.all-lines')
+  d3.selectAll('.all-lines')// Unselect all lines
       .attr('stroke-width', config.lineWidth);
-  d3.select('#line-label').remove();
-  if (d3.min(distanceFromEachLineArray) < config.maximumDistanceToHover) {
-    // console.log('distance: ', d3.min(distanceFromEachLineArray));
+  d3.select('#line-label').remove();// Remove the label
+
+  if (d3.min(distanceFromEachLineArray) < config.maximumDistanceToHover) {// If the closest line is further away than the maximumDistanceToHover, don't highlight a line
     var closestLine = distanceFromEachLineArray.indexOf(d3.min(distanceFromEachLineArray));
     d3.selectAll('.line' + closestLine)
-        .attr('stroke-width', config.lineWidthHovered);
+        .attr('stroke-width', config.lineWidthHovered);// make the selected line wider
     g.append('text')
       .attr('id', 'line-label')
       .attr("text-anchor", "start")
@@ -116,26 +114,29 @@ function highlightClosestLine() {
       .attr('opacity', 1)
       .text('Line ' + closestLine);
   }
-
 }
 
-
+// This function takes three two-element arrays: the coordinates of a point, one end of a line, and the other end of the line,
+// and returns the distance between the point and the closest point of that line.
+// The most important part does some complicated algebra to determine the length of an imaginary line between the point and
+// perpendicular to the segment in question if the segment were extended infinitely in both directions.
+// This will always be the shortest distance, --unless-- the mouse is beyond the end of the line (imagine a perpendicular
+// line on both ends of the segment, if the mouse is on the other side of this line, the closest point will instead be whichever
+// end of the segment is closer to the mouse.)
 function distanceBetweenPointAndSegment(pointLocation, segmentStartLocation, segmentEndLocation) {
-  var distance;
-  // console.log('locations: ', pointLocation, segmentStartLocation, segmentEndLocation);
-  var lengthOfLineSegment = Math.sqrt(Math.pow((segmentEndLocation[0] - segmentStartLocation[0]), 2) + Math.pow((segmentEndLocation[1] - segmentStartLocation[1]), 2));
-  var distanceBetweenPointAndSegmentStart = Math.sqrt(Math.pow((pointLocation[0] - segmentStartLocation[0]), 2) + Math.pow((pointLocation[1] - segmentStartLocation[1]), 2));
-  var distanceBetweenPointAndSegmentEnd = Math.sqrt(Math.pow((pointLocation[0] - segmentEndLocation[0]), 2) + Math.pow((pointLocation[1] - segmentEndLocation[1]), 2));
   var a = segmentStartLocation[1] - segmentEndLocation[1];
   var b = segmentEndLocation[0] - segmentStartLocation[0];
   var c = (segmentEndLocation[1] * segmentStartLocation[0]) - (segmentStartLocation[1] * segmentEndLocation[0]);
   var distancePerpendicularToExtendedLine = Math.abs(((a * pointLocation[0]) + (b * pointLocation[1]) + c)/(Math.sqrt((Math.pow(a,2) + (Math.pow(b,2))))));
+  var distance;
+  var lengthOfLineSegment = Math.sqrt(Math.pow((segmentEndLocation[0] - segmentStartLocation[0]), 2) + Math.pow((segmentEndLocation[1] - segmentStartLocation[1]), 2));
+  var distanceBetweenPointAndSegmentStart = Math.sqrt(Math.pow((pointLocation[0] - segmentStartLocation[0]), 2) + Math.pow((pointLocation[1] - segmentStartLocation[1]), 2));
+  var distanceBetweenPointAndSegmentEnd = Math.sqrt(Math.pow((pointLocation[0] - segmentEndLocation[0]), 2) + Math.pow((pointLocation[1] - segmentEndLocation[1]), 2));
   var distanceBetweenClosestPointOfExtendedLineAndOtherEndOfLine = Math.sqrt(Math.pow(d3.max([distanceBetweenPointAndSegmentStart, distanceBetweenPointAndSegmentEnd]), 2) - Math.pow(distancePerpendicularToExtendedLine, 2));
   if (distanceBetweenClosestPointOfExtendedLineAndOtherEndOfLine > lengthOfLineSegment) {
     distance = d3.min([distanceBetweenPointAndSegmentStart, distanceBetweenPointAndSegmentEnd]);
   } else {
     distance = distancePerpendicularToExtendedLine;
   }
-  // console.log('distance: ', distance);
   return distance;
 }
