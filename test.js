@@ -104,7 +104,11 @@ function distanceBetweenPointAndSegment(pointLocation, segmentStartLocation, seg
   console.log('locations: ', pointLocation, segmentStartLocation, segmentEndLocation);
   var distanceBetweenPointAndSegmentStart = Math.sqrt(Math.pow((pointLocation[0] - segmentStartLocation[0]), 2) + Math.pow((pointLocation[1] - segmentStartLocation[1]), 2));
   var distanceBetweenPointAndSegmentEnd = Math.sqrt(Math.pow((pointLocation[0] - segmentEndLocation[0]), 2) + Math.pow((pointLocation[1] - segmentEndLocation[1]), 2));
-  console.log('distances: ', distanceBetweenPointAndSegmentStart, distanceBetweenPointAndSegmentEnd);
+  var a = segmentStartLocation[1] - segmentEndLocation[1];
+  var b = segmentEndLocation[0] - segmentStartLocation[0];
+  var c = (segmentEndLocation[1] * segmentStartLocation[0]) - (segmentStartLocation[1] * segmentEndLocation[0]);
+  var distancePerpendicularToExtendedLine = ((a * pointLocation[0]) + (b * pointLocation[1]) + c)/(Math.sqrt((Math.pow(a,2) + (Math.pow(b,2)))));
+  console.log('distances: ', distanceBetweenPointAndSegmentStart, distanceBetweenPointAndSegmentEnd, distancePerpendicularToExtendedLine);
   // var distance = Math.sqrt(Math.pow((firstPoint[0] - secondPoint[0]), 2) + Math.pow((firstPoint[1] - secondPoint[1]), 2));
   // return distance;
 }
